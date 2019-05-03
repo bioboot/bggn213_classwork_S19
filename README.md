@@ -4,4 +4,4 @@ This is my coursework from [BGGN-213 at UC San Diego](https://bioboot.github.io/
 
 I will add my class content here soon...
 
-I will start with class5 onward
+I will start with class 5 onward
