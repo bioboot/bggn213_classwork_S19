@@ -1,0 +1,157 @@
+---
+title: 'Class 9: Unsupervised Learning Analysis of Human Breast Cancer Cells'
+author: "Barry Grant"
+date: "5/1/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Preparing the data
+
+I downloaded the CSV format data file from the class website and placed it in my project directory
+
+```{r}
+wisc.df <- read.csv("WisconsinCancer.csv")
+head(wisc.df)
+```
+
+> Q3. How many of the observations have a malignant diagnosis?
+
+```{r}
+table(wisc.df$diagnosis)
+```
+
+> Q4. How many variables/features in the data are suffixed with _mean?
+
+```{r}
+length( grep("_mean", colnames(wisc.df)) )
+```
+
+Select cols 3:32 and store as a matrix
+
+```{r}
+wisc.data <- as.matrix(wisc.df[,3:32])
+# Set the row names of wisc.data
+row.names(wisc.data) <- wisc.df$id
+
+```
+
+
+```{r}
+# Create diagnosis vector for later 
+diagnosis <- wisc.df$diagnosis
+```
+
+
+
+## Principal Component Analysis (PCA)
+
+Do I need to scale the data before PCA? Check the col means and standard deviations...
+
+```{r}
+round( apply(wisc.data, 2, mean), 1 )
+```
+
+```{r}
+round( apply(wisc.data, 2, sd), 1 )
+```
+
+
+Looks like I need to scale this data before PCA or just set the `scale=TRUE` argument to `prcomp()`
+
+```{r}
+wisc.pr <- prcomp(wisc.data, scale=TRUE)
+summary(wisc.pr)
+```
+
+
+```{r}
+# Scatter plot observations by components 1 and 2
+plot( wisc.pr$x[,1], wisc.pr$x[,2] , col = diagnosis, 
+     xlab = "PC1", ylab = "PC2")
+```
+
+
+```{r}
+# Scatter plot observations by components 2 and 3
+plot( wisc.pr$x[,2], wisc.pr$x[,3] , col = diagnosis, 
+     xlab = "PC2", ylab = "PC3")
+```
+
+
+> Q13. For the first principal component, and using two significant figures , what is the component of the loading vector (i.e. wisc.pr$rotation[,1]) for the feature radius_mean?
+
+
+```{r}
+round( wisc.pr$rotation["radius_mean",1], 2)
+```
+
+> Q14. For the first principal component, and using two significant figures, what is the component of the loading vector (i.e. wisc.pr$rotation[,1]) for the feature smoothness_se?
+
+```{r}
+round( wisc.pr$rotation["smoothness_se",1], 2)
+```
+
+> Q15. Which original variable contributes most to PC1?
+
+```{r}
+sort(abs(wisc.pr$rotation[,1]))
+```
+
+
+
+## Hierarchical clustering
+
+First we need to scale or data as we saw previously, then distance matrix then hierarchical clustering...
+
+```{r}
+wisc.hclust <- hclust( dist( scale(wisc.data) ) )
+```
+
+
+```{r}
+plot(wisc.hclust)
+abline(h=19, col="blue")
+```
+
+```{r}
+wisc.hclust.clusters <- cutree(wisc.hclust, k=4)
+table(wisc.hclust.clusters)
+```
+
+```{r}
+table(wisc.hclust.clusters, diagnosis)
+```
+
+## Section 5. Combining methods (PCA + hclust)
+
+I am going to start with the PCs that capture 90% of the origional varance in the dataset (i.e. PC1 to PC7)
+
+```{r}
+wisc.pr.hclust <- hclust( dist( wisc.pr$x[,1:7] ), method="ward.D2" )
+```
+
+```{r}
+plot(wisc.pr.hclust)
+abline(h=70, col="red", lty=2)
+```
+
+
+```{r}
+grps <- cutree(wisc.pr.hclust, k=2)
+table(grps)
+```
+
+```{r}
+table(grps, diagnosis)
+```
+
+```{r}
+plot(wisc.pr$x[,1], wisc.pr$x[,2], col=grps)
+```
+
+
+

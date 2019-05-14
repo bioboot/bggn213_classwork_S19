@@ -1,0 +1,81 @@
+---
+title: "Genome Play"
+author: "Barry Grant"
+date: "4/29/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The BSGenome package
+
+To install this package, start R (version "3.5") and enter:
+
+```{r}
+#BiocManager::install("BSgenome")
+```
+
+See the man page for the available.genomes function (?available.genomes) for more information about how to get the list of all the BSgenome data packages currently available in your version of Biocon- ductor
+
+```{r}
+library(BSgenome)
+
+available.genomes()
+```
+
+Then install one
+
+```{r}
+#BiocManager::install("BSgenome.Scerevisiae.UCSC.sacCer3")
+```
+
+```{r}
+# load the package and store data into yeast
+library(BSgenome.Scerevisiae.UCSC.sacCer3)
+yeast <- BSgenome.Scerevisiae.UCSC.sacCer3
+yeast
+```
+
+```{r}
+yeast$chrI
+```
+
+```{r}
+length(yeast)
+```
+
+```{r}
+length(yeast$chrI)
+```
+
+```{r}
+# Sequence lengths
+seqlengths(yeast)
+```
+
+```{r}
+# DNA single string
+dna_seq <- DNAString("ATGATCTCGTAA")
+dna_seq
+```
+
+```{r}
+# Transcription DNA to RNA string
+rna_seq <- RNAString(dna_seq)
+rna_seq
+```
+
+
+Three RNA bases form one AA: AUG = M, AUC = I, UCG = S, UAA = *
+
+```{r}
+# Translation RNA to AA
+aa_seq <- translate(rna_seq)
+aa_seq
+```
+
+## The Zika virus
+
+It is tiny for a genome
