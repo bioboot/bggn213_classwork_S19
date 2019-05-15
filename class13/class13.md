@@ -135,3 +135,35 @@ boxplot(exp ~ geno , data=expr, notch=TRUE)
 ```
 
 ![](class13_files/figure-markdown_github/unnamed-chunk-10-1.png)
+
+And some ggplot graphs because they look nicer ;-)
+
+``` r
+library(ggplot2)
+```
+
+    ## Warning: package 'ggplot2' was built under R version 3.5.2
+
+``` r
+ggplot(expr, aes(geno, exp)) + geom_boxplot()
+```
+
+![](class13_files/figure-markdown_github/unnamed-chunk-11-1.png)
+
+``` r
+## Histogram of the exp column with ggplot2
+ggplot(expr, aes(exp, fill = geno)) + geom_density(alpha = 0.2)
+```
+
+![](class13_files/figure-markdown_github/unnamed-chunk-12-1.png)
+
+And fancy...
+
+``` r
+# Boxplot with the data shown
+ggplot(expr, aes(geno, exp, fill=geno)) + 
+  geom_boxplot(notch=TRUE, outlier.shape = NA) + 
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha=0.4)
+```
+
+![](class13_files/figure-markdown_github/unnamed-chunk-13-1.png)
