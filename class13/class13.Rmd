@@ -1,0 +1,81 @@
+---
+title: "Class 13: Genome Informatics (Pt. 1)"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Ensemble 1000 Genome data
+
+What proportion of the Mexican Ancestry in Los Angeles sample population (MXL) are homozygous for the asthma associated SNP (G|G)?
+
+```{r}
+mxl <- read.csv("373531-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv")
+head(mxl)
+```
+
+```{r}
+table(mxl$Genotype..forward.strand.)
+```
+
+```{r}
+# proportion
+round((table(mxl$Genotype..forward.strand.)/nrow(mxl)) *100,2 )
+```
+
+
+## Quality scores in FASTQ files
+
+```{r}
+library(seqinr)
+library(gtools)
+asc( s2c("DDDDCDEDCDDDDBBDDDCC@") ) - 33
+
+#phred <- asc( s2c("DDDDCDEDCDDDDBBDDDCC@") ) - 33
+#phred
+
+```
+
+
+
+## Population Scale Analysis
+One sample is obviously not enough to know what is happening in a population. You are interested in assessing genetic differences on a population scale. So, you processed about ~230 samples and did the normalization on a genome level. Now, you want to find whether there is any association of the 4 asthma-associated SNPs (rs8067378...) on ORMDL3 expression.
+
+```{r}
+expr <- read.table("rs8067378_ENSG00000172057.6.txt")
+head(expr)
+```
+
+```{r}
+summary(expr)
+```
+
+```{r}
+inds <- (expr$geno == "G/G")
+summary(expr[inds,]$exp)
+hist(expr[inds,]$exp)
+boxplot(expr[inds,]$exp)
+```
+
+
+```{r}
+inds <- (expr$geno == "A/A")
+summary(expr[inds,]$exp)
+```
+
+```{r}
+inds <- (expr$geno == "A/G")
+summary(expr[inds,]$exp)
+```
+
+
+First try at a boxplot to show this data
+
+```{r}
+# y ~ grp
+boxplot(exp ~ geno , data=expr, notch=TRUE)
+```
+
+
