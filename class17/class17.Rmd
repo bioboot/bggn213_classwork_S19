@@ -1,0 +1,196 @@
+---
+title: "Class 17: Network analysis with R and cytoscape"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Set up Cytoscape and R connection
+
+Load the requried packages **RCy3** from bioconductor and **igraph** from CRAN.
+
+```{r}
+library(RCy3)
+library(igraph)
+```
+
+Check our connection to cytoscape
+
+```{r}
+cytoscapePing()
+```
+
+
+
+```{r}
+# Check the version
+cytoscapeVersionInfo()
+```
+
+We can test things further by making a small network (here in igraph format as used by the R igraph package) and sending it to Cytoscape:
+
+
+```{r}
+g <- makeSimpleIgraph()
+createNetworkFromIgraph(g,"myGraph")
+```
+
+```{r}
+plot(g)
+```
+
+```{r}
+setVisualStyle("Marquee")
+```
+
+```{r}
+fig <- exportImage(filename="demo_marquee", type="png", height=350)
+
+knitr::include_graphics(fig)
+```
+
+```{r}
+degree(g)
+```
+
+# Read our metagenomic data
+
+```{r}
+prok_vir_cor <- read.delim("virus_prok_cor_abundant.tsv", stringsAsFactors = FALSE)
+
+## Have a peak at the first 6 rows
+head(prok_vir_cor)
+```
+
+How edges will we have?
+```{r}
+nrow(prok_vir_cor)
+```
+
+How many unique species are there?
+```{r}
+length(unique(c(prok_vir_cor[,1], prok_vir_cor[,2])))
+```
+
+```{r}
+g <- graph.data.frame(prok_vir_cor, directed = FALSE)
+```
+
+```{r}
+plot(g)
+```
+
+```{r}
+plot(g, vertex.size=3, vertex.label=NA)
+```
+
+```{r}
+library(ggraph)
+
+ggraph(g, layout = 'auto') +
+  geom_edge_link(alpha = 0.25) +
+  geom_node_point(color="steelblue")
+```
+
+
+## Let's calculate some things ;-)
+
+Community detection with the Girvin Newman:
+
+```{r}
+cb <- cluster_edge_betweenness(g)
+```
+
+```{r}
+plot(cb, y=g, vertex.label=NA,  vertex.size=3)
+```
+
+
+You can extract a cluster/community membership vector for further inspection with the membership() function:
+```{r}
+head( membership(cb) )
+```
+
+
+## Node degree
+
+The degree of a node or vertex is its most basic structural property, the number of its adjacent edges. Here we calculate and plot the node degree distribution.
+
+```{r}
+# Calculate and plot node degree of our network
+d <- degree(g)
+hist(d, breaks=30, col="lightblue", main ="Node Degree Distribution")
+```
+
+For the **degree_distribution()** function a numeric vector of the same length as the maximum degree plus one is returned. The first element is the relative frequency zero degree vertices, the second vertices with degree one, etc.
+
+```{r}
+plot( degree_distribution(g), type="h" )
+```
+
+```{r}
+plot( degree_distribution(g), type="p", log="xy" )
+```
+
+
+
+
+## Centrality analysis
+
+
+Centrality gives an estimation on how important a node or edge is for the connectivity (or the information flow) of a network. It is a particularly useful parameter in signaling networks and it is often used when trying to find drug targets for example.
+
+Centrality analysis often aims to answer the following question: Which nodes are the most important and why?
+
+Google page rank
+
+```{r}
+pr <- page_rank(g)
+head(pr$vector)
+```
+
+
+```{r}
+# Make a size vector btwn 2 and 20 for node plotting size
+
+v.size <- BBmisc::normalize(pr$vector, range=c(2,20), method="range")
+plot(g, vertex.size=v.size, vertex.label=NA)
+
+```
+
+
+Another very common centrality score is betweenness. The vertex and edge betweenness are (roughly) defined by the number of geodesics (shortest paths) going through a vertex or an edge.
+
+```{r}
+b <- betweenness(g)
+v.size <- BBmisc::normalize(b, range=c(2,20), method="range")
+plot(g, vertex.size=v.size, vertex.label=NA)
+```
+
+
+
+## Read taxonomic classification for network annotation
+
+```{r}
+phage_id_affiliation <- read.delim("phage_ids_with_affiliation.tsv")
+head(phage_id_affiliation)
+
+
+```
+
+```{r}
+bac_id_affi <- read.delim("prok_tax_from_silva.tsv", stringsAsFactors = FALSE)
+head(bac_id_affi)
+```
+
+
+```{r}
+## Extract out our vertex names
+genenet.nodes <- as.data.frame(vertex.attributes(g), stringsAsFactors=FALSE)
+head(genenet.nodes)
+```
+
+
+
