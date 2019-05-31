@@ -1,0 +1,130 @@
+---
+title: "Class 18: Cancer Genomics"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Accessing the Genomic Data Commons
+
+We need the bioconductor package **GenomicDataCommons**
+
+```{r eval=FALSE}
+BiocManager::install("GenomicDataCommons")
+```
+
+Let's use this package to ping the database.
+
+```{r}
+library(GenomicDataCommons)
+status()
+```
+
+```{r}
+library(TCGAbiolinks)
+
+```
+
+
+Query the GDC
+
+```{r}
+cases_by_project <- cases() %>%
+  facet("project.project_id") %>%
+  aggregations()
+```
+
+```{r}
+x <- cases_by_project$project.project_id
+head(x)
+```
+
+```{r}
+colvec <- rep("lightblue", nrow(x))
+
+colvec[ x$key == "TCGA-PAAD" ] <- "red"
+
+barplot(x$doc_count, names.arg = x$key, las=2, log="y", col=colvec)
+```
+
+
+# Section 2.
+
+Step 1: Identify sequence regions that contain all 9-mer peptides that are only found in the tumor 
+- What are the tumor specific amino-acids?
+- What peptides include these amino acids?
+
+```{r}
+library(bio3d)
+
+seqs <- read.fasta("lecture18_sequences.fa")
+#aln <- seqaln(seqs)
+#aln
+```
+
+
+
+
+```{r}
+attributes(seqs)
+```
+
+```{r}
+seqs$ali[,41]
+```
+
+
+```{r}
+start.ind <- 41 - 8
+end.ind <- 41 + 8
+
+seqs$ali[, start.ind:end.ind ]
+```
+
+
+Find the sites (i.e. amino acids that are different)
+
+```{r}
+ide <- conserv(seqs, method = "identity")
+mismatch.inds <- which(ide < 1)
+```
+
+```{r}
+gaps <- gap.inspect(seqs)
+gap.inds <- gaps$t.inds
+```
+
+Find the positions in mismath.inds that are NOT in gap.inds
+
+```{r}
+tumor.sites <- mismatch.inds[!mismatch.inds %in% gap.inds]
+```
+
+```{r}
+#seqs$ali[,tumor.sites]
+ids <- paste( seqs$ali[1,tumor.sites], 
+       tumor.sites,
+       seqs$ali[2,tumor.sites], sep="")
+ids
+```
+
+```{r}
+start.ind <- tumor.sites - 8
+end.ind <- tumor.sites + 8
+
+tumor <- NULL
+for(i in 1:length(start.ind)) {
+  tumor <- seqbind(tumor, 
+                   seqs$ali[2,start.ind[i]: end.ind[i]])
+}
+
+write.fasta(ids=ids, ali=tumor, file="subsequences.fa")
+
+```
+
+
+
+
+
