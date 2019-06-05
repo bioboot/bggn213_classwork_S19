@@ -60,19 +60,31 @@ Step 1: Identify sequence regions that contain all 9-mer peptides that are only 
 library(bio3d)
 
 seqs <- read.fasta("lecture18_sequences.fa")
-#aln <- seqaln(seqs)
-#aln
+seqs
+```
+
+Does not look like these need to be aligned but we probably should align them to make sure when our input differs...
+
+```{r}
+aln <- seqaln(seqs)
+aln
+```
+
+Lots of gap positions, lets remove them first
+
+```{r}
+aln.nogaps <- gaprm(aln)
+aln.nogaps
 ```
 
 
 
-
 ```{r}
-attributes(seqs)
+attributes(aln.nogaps)
 ```
 
 ```{r}
-seqs$ali[,41]
+aln.nogaps$ali[,41]
 ```
 
 
@@ -80,44 +92,43 @@ seqs$ali[,41]
 start.ind <- 41 - 8
 end.ind <- 41 + 8
 
-seqs$ali[, start.ind:end.ind ]
+aln.nogaps$ali[, start.ind:end.ind ]
 ```
 
 
 Find the sites (i.e. amino acids that are different)
 
 ```{r}
-ide <- conserv(seqs, method = "identity")
+ide <- conserv(aln.nogaps, method = "identity")
 mismatch.inds <- which(ide < 1)
 ```
 
-```{r}
-gaps <- gap.inspect(seqs)
-gap.inds <- gaps$t.inds
-```
 
-Find the positions in mismath.inds that are NOT in gap.inds
-
-```{r}
-tumor.sites <- mismatch.inds[!mismatch.inds %in% gap.inds]
-```
 
 ```{r}
 #seqs$ali[,tumor.sites]
-ids <- paste( seqs$ali[1,tumor.sites], 
-       tumor.sites,
-       seqs$ali[2,tumor.sites], sep="")
+ids <- paste( aln.nogaps$ali[1,mismatch.inds], 
+       mismatch.inds,
+       aln.nogaps$ali[2,mismatch.inds], sep="")
 ids
 ```
 
 ```{r}
-start.ind <- tumor.sites - 8
-end.ind <- tumor.sites + 8
+start.ind <-  mismatch.inds - 8
+end.ind <-  mismatch.inds + 8
+
+# Check for out-of-bounds numbers
+min.pos <- 1
+max.pos <- ncol(aln.nogaps$ali)
+
+start.ind[start.ind < min.pos] <- min.pos
+end.ind[end.ind > max.pos] <- max.pos
+
 
 tumor <- NULL
 for(i in 1:length(start.ind)) {
   tumor <- seqbind(tumor, 
-                   seqs$ali[2,start.ind[i]: end.ind[i]])
+                   aln.nogaps$ali[2,start.ind[i]: end.ind[i]])
 }
 
 write.fasta(ids=ids, ali=tumor, file="subsequences.fa")
@@ -126,5 +137,45 @@ write.fasta(ids=ids, ali=tumor, file="subsequences.fa")
 
 
 
+gaprm() or gap.rm function to remove cols with gaps.
+- should take vector, data.frame/matrix, alignment and pdbs object
 
+
+
+```{r}
+
+
+gaprm <- function(x) {
+  #' Remove gap containing positions from alignment, pdbs 
+  #'   or vector input objects
+  #'
+  #' @param x a character vector, fasta class alignment as obtained
+  #'   from read.fasta() or a pdbs class object as obtained from
+  #'   read.fasta.pdb()
+  #'
+  #' @return an object of similar class to the input but wwith gap
+  #'   containing positions removed
+  #'
+  #' @examples gaprm( c("G","G","-","-","A") )
+
+  is.fasta <- function(x) { inherits(x, "fasta") }
+
+  gaps <- gap.inspect(x)
+
+  message( paste("Dropping", length(gaps$t.inds),"gap positions and keeping", length(gaps$f.inds), "positions"))
+  if(is.vector(x)) {
+    x <- x[gaps$f.inds]
+  }
+  if(is.fasta(x)){
+    x$ali <- x$ali[, gaps$f.inds, drop = FALSE]
+  }
+  if(is.pdbs(x)){
+    x <- trim.pdbs(x, col.inds=gaps$f.inds)
+  }
+  return(x)
+}
+```
+
+
+Or have the write.fasta() function have na.omit gap.omit option!
 
